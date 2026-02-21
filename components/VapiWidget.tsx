@@ -14,6 +14,7 @@ export default function VapiWidget({ onSpeakingChange }: VapiWidgetProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [callDuration, setCallDuration] = useState(0);
 
   useEffect(() => {
     // Initialize Vapi
@@ -137,13 +138,40 @@ export default function VapiWidget({ onSpeakingChange }: VapiWidgetProps) {
     }
   };
 
+  // Timer management
+  useEffect(() => {
+    if (callStatus === 'idle') {
+      setCallDuration(0);
+    }
+  }, [callStatus]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    if (callStatus === 'active') {
+      intervalId = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [callStatus]);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const isButtonActive = callStatus === 'active' || callStatus === 'connecting';
 
   return (
     <div className="fixed inset-0 z-10 flex items-center justify-center pointer-events-none">
       <div className="pointer-events-auto">
         {/* Main card */}
-        <div className="bg-secondary/40 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-muted/20">
+        <div className="bg-secondary/40 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-muted/20 animate-[slide-in-up_0.4s_ease-out]">
           <div className="flex flex-col items-center gap-6 min-w-[300px]">
             {/* Mic Button */}
             <button
@@ -185,6 +213,11 @@ export default function VapiWidget({ onSpeakingChange }: VapiWidgetProps) {
                 {callStatus === 'active' && 'Call Active'}
                 {callStatus === 'ending' && 'Ending...'}
               </p>
+              {callStatus === 'active' && (
+                <p className="text-xs text-foreground/60 mt-1">
+                  {formatDuration(callDuration)}
+                </p>
+              )}
             </div>
 
             {/* Volume Bars */}

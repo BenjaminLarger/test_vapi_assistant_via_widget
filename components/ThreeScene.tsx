@@ -2,6 +2,22 @@
 
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import System, {
+  Emitter,
+  Rate,
+  Span,
+  Mass,
+  Radius,
+  Life,
+  Position,
+  Alpha,
+  Scale,
+  Color,
+  Force,
+  RandomDrift,
+  SpriteRenderer,
+} from 'three-nebula';
+import { SphereZone } from 'three-nebula';
 
 interface ThreeSceneProps {
   isSpeaking: boolean;
@@ -11,11 +27,12 @@ export default function ThreeScene({ isSpeaking }: ThreeSceneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const particlesRef = useRef<THREE.Points | null>(null);
+  const nebulaSystemRef = useRef<System | null>(null);
+  const emitterRef = useRef<Emitter | null>(null);
+  const prevSpeakingRef = useRef(false);
   const orbRef = useRef<THREE.Mesh | null>(null);
   const isSpeakingRef = useRef(isSpeaking);
   const animationStateRef = useRef({
-    particleSpeed: 0.001,
     orbScale: 1,
     emissiveIntensity: 0.5,
   });
@@ -48,34 +65,38 @@ export default function ThreeScene({ isSpeaking }: ThreeSceneProps) {
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Particle field
-    const particleGeometry = new THREE.BufferGeometry();
-    const particleCount = 2000;
-    const positions = new Float32Array(particleCount * 3);
-    const velocities = new Float32Array(particleCount * 3);
+    // Three Nebula particle system
+    const nebulaSystem = new System();
+    const emitter = new Emitter();
 
-    for (let i = 0; i < particleCount * 3; i += 3) {
-      positions[i] = (Math.random() - 0.5) * 100;
-      positions[i + 1] = (Math.random() - 0.5) * 100;
-      positions[i + 2] = (Math.random() - 0.5) * 100;
+    // IDLE rate — 5–10 particles every 0.3 s
+    emitter.setRate(new Rate(new Span(5, 10), new Span(0.3)));
 
-      velocities[i] = (Math.random() - 0.5) * 0.02;
-      velocities[i + 1] = (Math.random() - 0.5) * 0.02;
-      velocities[i + 2] = (Math.random() - 0.5) * 0.02;
-    }
+    emitter.addInitializers([
+      new Life(1.5, 3),
+      new Position(new SphereZone(3)),       // emit from orb surface radius
+      new Mass(1),
+      new Radius(0.08, 0.25),
+    ]);
 
-    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    particleGeometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+    emitter.addBehaviours([
+      new Alpha(1, 0),                        // fade out over lifetime
+      new Scale(1, 0.1),                      // shrink over lifetime
+      new Color(
+        new THREE.Color(0x0ea5e9),            // primary blue (idle)
+        new THREE.Color(0x3b82f6),            // accent blue (end of life)
+      ),
+      new RandomDrift(1.5, 1.5, 1.5, 0.05),  // gentle organic movement
+      new Force(0, 0.03, 0),                 // slow upward drift (idle)
+    ]);
 
-    const particleMaterial = new THREE.PointsMaterial({
-      color: 0x0ea5e9,
-      size: 0.2,
-      sizeAttenuation: true,
-    });
+    nebulaSystem.addEmitter(emitter);
+    nebulaSystem.addRenderer(new SpriteRenderer(scene, THREE));
 
-    const particles = new THREE.Points(particleGeometry, particleMaterial);
-    scene.add(particles);
-    particlesRef.current = particles;
+    emitter.emit();
+
+    nebulaSystemRef.current = nebulaSystem;
+    emitterRef.current = emitter;
 
     // Central orb
     const orbGeometry = new THREE.IcosahedronGeometry(2, 4);
@@ -109,38 +130,31 @@ export default function ThreeScene({ isSpeaking }: ThreeSceneProps) {
 
     // Animation loop
     const animationFrameId = requestAnimationFrame(function animate() {
-      const positionAttribute = particleGeometry.getAttribute('position');
-      const velocityAttribute = particleGeometry.getAttribute('velocity');
-      const positions = positionAttribute.array as Float32Array;
-      const velocities = velocityAttribute.array as Float32Array;
-
       // Target animation values based on speaking state
-      const targetParticleSpeed = isSpeakingRef.current ? 0.01 : 0.001;
       const targetOrbScale = isSpeakingRef.current ? 1.3 : 1;
       const targetEmissiveIntensity = isSpeakingRef.current ? 1 : 0.5;
 
       // Lerp toward targets
-      animationStateRef.current.particleSpeed +=
-        (targetParticleSpeed - animationStateRef.current.particleSpeed) * 0.05;
       animationStateRef.current.orbScale +=
         (targetOrbScale - animationStateRef.current.orbScale) * 0.05;
       animationStateRef.current.emissiveIntensity +=
         (targetEmissiveIntensity - animationStateRef.current.emissiveIntensity) * 0.05;
 
-      // Update particles
-      for (let i = 0; i < particleCount * 3; i += 3) {
-        positions[i] += velocities[i] * animationStateRef.current.particleSpeed;
-        positions[i + 1] += velocities[i + 1] * animationStateRef.current.particleSpeed;
-        positions[i + 2] += velocities[i + 2] * animationStateRef.current.particleSpeed;
+      // Detect speaking state change — update emitter rate only on transitions
+      if (isSpeakingRef.current !== prevSpeakingRef.current) {
+        prevSpeakingRef.current = isSpeakingRef.current;
 
-        // Wrap around bounds
-        const bounds = 50;
-        if (Math.abs(positions[i]) > bounds) velocities[i] *= -1;
-        if (Math.abs(positions[i + 1]) > bounds) velocities[i + 1] *= -1;
-        if (Math.abs(positions[i + 2]) > bounds) velocities[i + 2] *= -1;
+        if (isSpeakingRef.current) {
+          // SPEAKING — burst mode
+          emitterRef.current?.setRate(new Rate(new Span(40, 60), new Span(0.05)));
+        } else {
+          // IDLE — ambient mode
+          emitterRef.current?.setRate(new Rate(new Span(5, 10), new Span(0.3)));
+        }
       }
 
-      positionAttribute.needsUpdate = true;
+      // Tick Nebula system
+      nebulaSystemRef.current?.update();
 
       // Update orb
       if (orbRef.current) {
@@ -163,8 +177,7 @@ export default function ThreeScene({ isSpeaking }: ThreeSceneProps) {
     return () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
-      particleGeometry.dispose();
-      particleMaterial.dispose();
+      nebulaSystemRef.current?.destroy();
       orbGeometry.dispose();
       orbMaterial.dispose();
       renderer.dispose();
