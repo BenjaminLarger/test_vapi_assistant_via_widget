@@ -17,7 +17,6 @@ export default function VapiWidget({ onSpeakingChange }: VapiWidgetProps) {
 
   useEffect(() => {
     // Initialize Vapi
-    console.log('Initializing Vapi with API key:', VAPI_API_KEY ? 'Set' : 'Missing', 'Assistant ID:', VAPI_ASSISTANT_ID ? 'Set' : 'Missing');
     const vapi = new Vapi(VAPI_API_KEY);
 
     vapiRef.current = vapi;
