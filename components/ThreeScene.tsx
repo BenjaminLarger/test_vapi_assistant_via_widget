@@ -111,14 +111,6 @@ export default function ThreeScene({ isSpeaking }: ThreeSceneProps) {
     scene.add(orb);
     orbRef.current = orb;
 
-    // Lighting
-    const light = new THREE.PointLight(0x0ea5e9, 1.5);
-    light.position.set(10, 10, 10);
-    scene.add(light);
-
-    const ambientLight = new THREE.AmbientLight(0x1e293b, 0.4);
-    scene.add(ambientLight);
-
     // Handle window resize
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
