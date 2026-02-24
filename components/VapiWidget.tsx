@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Vapi from '@vapi-ai/web';
-import { VAPI_API_KEY, VAPI_ASSISTANT_ID } from '@/lib/vapiConfig';
+import { VAPI_API_KEY } from '@/lib/vapiConfig';
 
 interface VapiWidgetProps {
+  assistantId: string;
+  assistantName: string;
   onSpeakingChange: (isSpeaking: boolean) => void;
 }
 
-export default function VapiWidget({ onSpeakingChange }: VapiWidgetProps) {
+export default function VapiWidget({ assistantId, assistantName, onSpeakingChange }: VapiWidgetProps) {
   const vapiRef = useRef<Vapi | null>(null);
   const [callStatus, setCallStatus] = useState<'idle' | 'connecting' | 'active' | 'ending'>('idle');
   const [volumeLevel, setVolumeLevel] = useState(0);
@@ -101,7 +103,7 @@ export default function VapiWidget({ onSpeakingChange }: VapiWidgetProps) {
           originalLog(...args);
         };
         try {
-          await vapiRef.current.start(VAPI_ASSISTANT_ID);
+          await vapiRef.current.start(assistantId);
         } finally {
           console.warn = originalWarn;
           console.error = originalError;
@@ -160,6 +162,9 @@ export default function VapiWidget({ onSpeakingChange }: VapiWidgetProps) {
         {/* Main card */}
         <div className="bg-secondary/40 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-muted/20 animate-[slide-in-up_0.4s_ease-out]">
           <div className="flex flex-col items-center gap-6 min-w-[300px]">
+            {/* Assistant Name */}
+            <h1 className="text-2xl font-bold text-foreground">{assistantName}</h1>
+
             {/* Mic Button */}
             <button
               onClick={handleMicClick}
