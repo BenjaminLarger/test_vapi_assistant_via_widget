@@ -12,4 +12,9 @@ export const ASSISTANTS = {
     name: 'Electricidad Abril',
     slug: 'electricidad-abril',
   },
+  electrecidadParedes: {
+    id: '4b3fa264-d837-46ad-8906-187714f93f16',
+    name: 'Electrecidad Paredes',
+    slug: 'electrecidad-paredes',
+  },
 } as const;
