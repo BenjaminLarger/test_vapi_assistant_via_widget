@@ -7,7 +7,7 @@ import { ASSISTANTS } from '@/lib/vapiConfig';
 
 const ThreeScene = dynamic(() => import('@/components/ThreeScene'), { ssr: false });
 
-export default function ElectrecidadParedesPage() {
+export default function ElectricidadParedesPage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const handleSpeakingChange = useCallback((speaking: boolean) => {
@@ -18,8 +18,8 @@ export default function ElectrecidadParedesPage() {
     <>
       <ThreeScene isSpeaking={isSpeaking} />
       <VapiWidget
-        assistantId={ASSISTANTS.electrecidadParedes.id}
-        assistantName={ASSISTANTS.electrecidadParedes.name}
+        assistantId={ASSISTANTS.ElectricidadParedes.id}
+        assistantName={ASSISTANTS.ElectricidadParedes.name}
         onSpeakingChange={handleSpeakingChange}
       />
     </>

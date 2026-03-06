@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary p-4">
       <div className="text-center max-w-md">
-        <h1 className="text-4xl font-bold text-foreground mb-2">Assistantes Virtuales</h1>
+        <h1 className="text-4xl font-bold text-foreground mb-2">Assistentes Virtuales</h1>
 
         <div className="flex flex-col gap-4">
           {Object.entries(ASSISTANTS).map(([key, assistant]) => (
